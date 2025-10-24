@@ -1,0 +1,68 @@
+# =============== #
+# Unity Generated #
+# =============== #
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+
+# ============ #
+# OS Generated #
+# ============ #
+.DS_Store
+Thumbs.db
+
+# =============== #
+# Visual Studio   #
+# =============== #
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.user
+*.unityproj
+*.pidb
+*.booproj
+*.svd
+*.suo
+
+# ============ #
+# Crash Reports #
+# ============ #
+sysinfo.txt
+
+# =============== #
+# Unity Cache     #
+# =============== #
+*.stackdump
+*.bak
+*.tmp
+*.old
+*.orig
+*.mdb
+*.pdb
+*.opendb
+*.VC.db
+*.idb
+
+# ============ #
+# Builds Output #
+# ============ #
+*.apk
+*.aab
+*.xcodeproj
+*.xcworkspace/
+*.ipa
+*.exe
+*.app
+*.msi
+*.dll
+
+# =============== #
+# Package Manager #
+# =============== #
+Packages/com.unity.package-manager-cache/
