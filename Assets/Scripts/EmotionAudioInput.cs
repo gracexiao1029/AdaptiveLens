@@ -3,37 +3,38 @@ using UnityEngine;
 using Unity.Barracuda;
 
 /// <summary>
-/// Captures real-time Quest 2 microphone input,
-/// runs emotion inference using a Barracuda ONNX model (valence/arousal),
-/// and maps the results to passthrough color gradients.
+/// Records real-time audio, converts to mel spectrogram (crude version),
+/// feeds ONNX emotion model via Barracuda, and maps valence to passthrough color.
 /// </summary>
 [RequireComponent(typeof(AudioSource))]
 public class EmotionAudioInput : MonoBehaviour
 {
     public OVRPassthroughLayer passthrough;
-    public NNModel emotionModelAsset;   // drag your emotion_model.onnx (imported as NNModel)
+    public NNModel emotionModelAsset;
+
     private Model runtimeModel;
     private IWorker worker;
-
     private AudioSource audioSource;
-    private const int sampleSize = 1024;
+
+    private const int sampleSize = 4096; // read 4096 samples per frame
     private float[] samples = new float[sampleSize];
-    private float[] spectrum = new float[sampleSize];
     private float sampleRate;
 
     private Color currentColor = Color.white;
-    private float smoothColorSpeed = 6f;
+    private float smoothColorSpeed = 4f;
+
+    private const int N_MELS = 64;
+    private const int TARGET_FRAMES = 1292; // matches model
 
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
-        audioSource.clip = Microphone.Start(null, true, 1, 44100);
+        audioSource.clip = Microphone.Start(null, true, 5, 44100);
         audioSource.loop = true;
         while (!(Microphone.GetPosition(null) > 0)) { }
         audioSource.Play();
         sampleRate = AudioSettings.outputSampleRate;
 
-        // Initialize Model
         runtimeModel = ModelLoader.Load(emotionModelAsset);
         worker = WorkerFactory.CreateWorker(WorkerFactory.Type.Auto, runtimeModel);
 
@@ -44,43 +45,70 @@ public class EmotionAudioInput : MonoBehaviour
 
     void Update()
     {
-        // === 4️⃣ Capture live mic samples ===
+        int micPos = Microphone.GetPosition(null);
+        if (micPos < sampleSize) return;
         audioSource.GetOutputData(samples, 0);
-        audioSource.GetSpectrumData(spectrum, 0, FFTWindow.BlackmanHarris);
 
-        float freq = GetDominantFrequency();
-        if (freq <= 0 || float.IsNaN(freq))
+        // Crude mel spectrogram placeholder
+        float[] mel = new float[N_MELS * TARGET_FRAMES];
+        for (int m = 0; m < N_MELS; m++)
         {
-            passthrough.colorMapEditorGradient = MakeNeutralGradient();
-            return;
+            for (int t = 0; t < TARGET_FRAMES; t++)
+            {
+                int src = Mathf.Clamp(t * sampleSize / TARGET_FRAMES, 0, sampleSize - 1);
+                mel[m * TARGET_FRAMES + t] = Mathf.Abs(samples[src]) * 10f;
+            }
         }
 
-        // === 5️⃣ Prepare simple mel-like input tensor ===
-        float[] melInput = new float[64 * 128];
-        for (int i = 0; i < melInput.Length && i < spectrum.Length; i++)
-            melInput[i] = spectrum[i] * 10f;
+        // Feed into Barracuda
+        using (var input = new Tensor(1, N_MELS, TARGET_FRAMES, 1, mel))
+        {
+            worker.Execute(input);
+            using (var output = worker.PeekOutput())
+            {
+                float valence = 0f;
+                float arousal = 0f;
 
-        Tensor input = new Tensor(1, 64, 128, 1, melInput);
+                if (output.length >= 2)
+                {
+                    valence = output[0];
+                    arousal = output[1];
+                }
 
-        // === 6️⃣ Run ONNX model ===
-        worker.Execute(input);
-        Tensor output = worker.PeekOutput();
+                Debug.Log($"Valence: {valence}, Arousal: {arousal}");
 
-        // Expect 1 value for valence (0 = cold/negative, 1 = warm/positive)
-        float valence = Mathf.Clamp01(output[0]);
+                // Normalize valence to 0–1 (DEAM range 1–9)
+                valence = Mathf.InverseLerp(1f, 9f, valence);
 
-        // === 7️⃣ Map valence → color ===
-        // low valence (cold) → blue, high valence → red
-        Color targetColor = Color.Lerp(Color.blue, Color.red, valence);
-        currentColor = Color.Lerp(currentColor, targetColor, Time.deltaTime * smoothColorSpeed);
+                Color targetColor = ValenceToGradientColor(valence);
+                currentColor = Color.Lerp(currentColor, targetColor, Time.deltaTime * smoothColorSpeed);
 
-        // === 8️⃣ Apply to passthrough ===
-        passthrough.colorMapEditorGradient = MakeTintedGradient(currentColor);
-        passthrough.colorMapEditorBrightness = 0f;
-        passthrough.colorMapEditorContrast = 0f;
+                passthrough.colorMapEditorGradient = MakeTintedGradient(currentColor);
+                passthrough.colorMapEditorBrightness = 0f;
+                passthrough.colorMapEditorContrast = 0f;
+            }
+        }
+    }
 
-        input.Dispose();
-        output.Dispose();
+    Color ValenceToGradientColor(float valence)
+    {
+        // Detailed 1–9 mapping (valence normalized 0–1)
+        if (valence < 0.025f)
+            return Color.Lerp(new Color(0f, 0f, 0.8f), new Color(0f, 0.8f, 1f), valence / 0.125f);
+        else if (valence < 0.05f)
+            return Color.Lerp(new Color(0f, 0.8f, 1f), new Color(0.3f, 1f, 0.5f), (valence - 0.125f) / 0.125f);
+        else if (valence < 0.075f)
+            return Color.Lerp(new Color(0.3f, 1f, 0.5f), new Color(0.7f, 1f, 0.3f), (valence - 0.25f) / 0.125f);
+        else if (valence < 0.10f)
+            return Color.Lerp(new Color(0.7f, 1f, 0.3f), new Color(1f, 1f, 0.2f), (valence - 0.375f) / 0.125f);
+        else if (valence < 0.15f)
+            return Color.Lerp(new Color(1f, 1f, 0.2f), new Color(1f, 0.6f, 0f), (valence - 0.5f) / 0.125f);
+        else if (valence < 0.20f)
+            return Color.Lerp(new Color(1f, 0.6f, 0f), new Color(1f, 0.3f, 0.1f), (valence - 0.625f) / 0.125f);
+        else if (valence < 0.25f)
+            return Color.Lerp(new Color(1f, 0.3f, 0.1f), new Color(1f, 0f, 0f), (valence - 0.75f) / 0.125f);
+        else
+            return Color.Lerp(new Color(1f, 0f, 0f), new Color(1f, 0.4f, 0.6f), (valence - 0.875f) / 0.125f);
     }
 
     Gradient MakeNeutralGradient()
@@ -120,23 +148,5 @@ public class EmotionAudioInput : MonoBehaviour
     void OnDestroy()
     {
         worker?.Dispose();
-    }
-
-    float GetDominantFrequency()
-    {
-        float maxV = 0;
-        int maxN = 0;
-        for (int i = 0; i < sampleSize; i++)
-        {
-            float freq = i * (sampleRate / 2f) / sampleSize;
-            float weight = Mathf.Clamp01(freq / 4000f);
-            float value = spectrum[i] * (0.3f + weight);
-            if (value > maxV)
-            {
-                maxV = value;
-                maxN = i;
-            }
-        }
-        return maxN * (sampleRate / 2f) / sampleSize;
     }
 }
