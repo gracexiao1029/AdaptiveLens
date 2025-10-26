@@ -421,6 +421,7 @@ GameObject:
   - component: {fileID: 361272974}
   - component: {fileID: 361272973}
   - component: {fileID: 361272975}
+  - component: {fileID: 361272977}
   - component: {fileID: 361272976}
   m_Layer: 0
   m_Name: Passthrough Manager
@@ -550,7 +551,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 361272972}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 39539b75523ae0b43b9a324beee774f5, type: 3}
   m_Name: 
@@ -652,6 +653,20 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &361272977
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 361272972}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cd48626477a322439247b378124a55a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  passthrough: {fileID: 648611531}
+  emotionModelAsset: {fileID: 5022602860645237092, guid: 98a006d0ae2b44647a57f723fd9002a6, type: 3}
 --- !u!1 &422531745
 GameObject:
   m_ObjectHideFlags: 0
