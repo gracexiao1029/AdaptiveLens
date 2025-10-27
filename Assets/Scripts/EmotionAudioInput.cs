@@ -38,9 +38,11 @@ public class EmotionAudioInput : MonoBehaviour
         runtimeModel = ModelLoader.Load(emotionModelAsset);
         worker = WorkerFactory.CreateWorker(WorkerFactory.Type.Auto, runtimeModel);
 
-        passthrough.colorMapEditorBrightness = 0f;
-        passthrough.colorMapEditorContrast = 0f;
+        passthrough.textureOpacity = 1.0f;
         passthrough.colorMapEditorGradient = MakeNeutralGradient();
+        passthrough.colorMapEditorBrightness = 0.0f;
+        passthrough.colorMapEditorContrast = 0.0f;
+        passthrough.colorMapEditorPosterize = 0.0f;
     }
 
     void Update()

@@ -11,7 +11,11 @@ public class PassthroughManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-
+        passthrough.textureOpacity = 1.0f;
+        passthrough.colorMapEditorGradient = MakeNeutralGradient();
+        passthrough.colorMapEditorBrightness = 0.0f;
+        passthrough.colorMapEditorContrast = 0.0f;
+        passthrough.colorMapEditorPosterize = 0.0f;
     }
 
     // Update is called once per frame
@@ -89,4 +93,20 @@ public class PassthroughManager : MonoBehaviour
     public void SetBrightness(float value) => passthrough.colorMapEditorBrightness = value;
     public void SetContrast(float value) => passthrough.colorMapEditorContrast = value;
     public void SetPosterize(float value) => passthrough.colorMapEditorPosterize = value;
+
+    Gradient MakeNeutralGradient()
+    {
+        Gradient g = new Gradient();
+        g.SetKeys(
+            new GradientColorKey[] {
+                new GradientColorKey(Color.black, 0f),
+                new GradientColorKey(Color.white, 1f)
+            },
+            new GradientAlphaKey[] {
+                new GradientAlphaKey(1f, 0f),
+                new GradientAlphaKey(1f, 1f)
+            }
+        );
+        return g;
+    }
 }

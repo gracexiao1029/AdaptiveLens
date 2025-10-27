@@ -24,9 +24,11 @@ public class AudioInput : MonoBehaviour
         audioSource.Play();
         sampleRate = AudioSettings.outputSampleRate;
 
-        passthrough.colorMapEditorBrightness = 0f;
-        passthrough.colorMapEditorContrast = 0f;
+        passthrough.textureOpacity = 1.0f;
         passthrough.colorMapEditorGradient = MakeNeutralGradient();
+        passthrough.colorMapEditorBrightness = 0.0f;
+        passthrough.colorMapEditorContrast = 0.0f;
+        passthrough.colorMapEditorPosterize = 0.0f;
     }
 
     void Update()
