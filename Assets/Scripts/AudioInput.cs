@@ -28,7 +28,8 @@ public class AudioInput : MonoBehaviour
         passthrough.colorMapEditorGradient = MakeNeutralGradient();
         passthrough.colorMapEditorBrightness = 0.0f;
         passthrough.colorMapEditorContrast = 0.0f;
-        passthrough.colorMapEditorPosterize = 0.0f;
+        passthrough.colorMapEditorPosterize = 0f;
+
     }
 
     void Update()
@@ -61,6 +62,8 @@ public class AudioInput : MonoBehaviour
         passthrough.colorMapEditorGradient = MakeTintedGradient(currentColor);
         passthrough.colorMapEditorBrightness = 0f;
         passthrough.colorMapEditorContrast = 0f;
+        passthrough.colorMapEditorPosterize = 0f;
+        passthrough.textureOpacity = 1.0f;
     }
 
     float GetDominantFrequency()

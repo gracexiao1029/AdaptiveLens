@@ -106,13 +106,14 @@ public class EmotionAudioInput : MonoBehaviour
                 valence = (float)((float)1.0 / (1.0 + Math.Exp(-2.5 * (valence - 1.8))));
                 arousal = (float)Math.Log10(1.0 + 9.0 * (arousal - 0.8928) / 1.2576);
 
-
+                
                 Color targetColor = ValenceToGradientColor(valence);
                 currentColor = Color.Lerp(currentColor, targetColor, Time.deltaTime * smoothColorSpeed);
-
                 passthrough.colorMapEditorGradient = MakeTintedGradient(currentColor);
                 passthrough.colorMapEditorBrightness = ArousalToBrightness(arousal);
                 passthrough.colorMapEditorContrast = 0f;
+                passthrough.colorMapEditorPosterize = 0f;
+                passthrough.textureOpacity = 1.0f;
             }
         }
     }
@@ -120,34 +121,32 @@ public class EmotionAudioInput : MonoBehaviour
     float ArousalToBrightness (float arousal)
     {
         if (arousal < 0.2f)
-            return -1f;
+            return -0.2f;
         else if (arousal < 0.4f)
-            return -0.5f;
+            return -0.1f;
         else if (arousal < 0.6f)
             return 0f;
         else if (arousal < 0.8f)
-            return 0.5f;
+            return 0.1f;
         else
-            return 1f;
+            return 0.2f;
     }
 
     Color ValenceToGradientColor(float valence)
     {
         Color result;
-
-        if (valence < 0.125f)
+        // f(x) = 0.12 * (Math.Pow(1.35, x) - 1) + 0.01 * x
+        if (valence < 0.12f)
             result = new Color(0f, 0f, 0.8f); // Deep Blue
-        else if (valence < 0.25f)
+        else if (valence < 0.132f)
             result = new Color(0f, 0.8f, 1f); // Cyan
-        else if (valence < 0.375f)
-            result = new Color(0.3f, 1f, 0.5f); // Aqua-Green
-        else if (valence < 0.5f)
+        else if (valence < 0.167f)
             result = new Color(0.7f, 1f, 0.3f); // Lime
-        else if (valence < 0.625f)
+        else if (valence < 0.23f)
             result = new Color(1f, 1f, 0.2f); // Yellow
-        else if (valence < 0.75f)
+        else if (valence < 0.327f)
             result = new Color(1f, 0.6f, 0f); // Orange
-        else if (valence < 0.875f)
+        else if (valence < 0.465f)
             result = new Color(1f, 0.3f, 0.1f); // Red-Orange
         else
             result = new Color(1f, 0f, 0f); // Red
