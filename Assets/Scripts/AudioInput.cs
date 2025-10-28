@@ -96,7 +96,9 @@ public class AudioInput : MonoBehaviour
         octave = Mathf.Clamp(log_val, 2f, 6f);
         semitone = (log_val - Mathf.Floor(log_val)) * 12f;
 
-        hue = Mathf.Repeat(semitone * (360f / 12f), 360f);
+        // Remap hue pattern (C=Green, D=Blue, E=Indigo, F=Violet, G=Red, A=Orange, B=Yellow)
+        float baseHue = semitone * (360f / 12f);
+        hue = Mathf.Repeat(120f + baseHue, 360f); // shift starting point to green (120бу)
     }
 
     // HSL to RGB
