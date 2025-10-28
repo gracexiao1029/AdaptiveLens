@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 using Unity.Barracuda;
+using System.IO;
 
 /// <summary>
 /// Records real-time audio, converts to mel spectrogram (crude version),
@@ -26,6 +27,10 @@ public class EmotionAudioInput : MonoBehaviour
     private const int N_MELS = 64;
     private const int TARGET_FRAMES = 1292; // matches model
 
+    private string logPath = @"C:\Users\GRACE\Documents\Adjust Lens\Assets\Log\emotion_log.txt";
+    private float timer = 0f;
+    private float logInterval = 5f; // write log every 5 seconds
+
     void Start()
     {
         audioSource = GetComponent<AudioSource>();
@@ -43,6 +48,12 @@ public class EmotionAudioInput : MonoBehaviour
         passthrough.colorMapEditorBrightness = 0.0f;
         passthrough.colorMapEditorContrast = 0.0f;
         passthrough.colorMapEditorPosterize = 0.0f;
+
+        string folderPath = Path.GetDirectoryName(logPath);
+        if (!Directory.Exists(folderPath))
+        {
+            Directory.CreateDirectory(folderPath);
+        }
     }
 
     void Update()
@@ -77,10 +88,21 @@ public class EmotionAudioInput : MonoBehaviour
                     arousal = output[1];
                 }
 
-                Debug.Log($"Valence: {valence}, Arousal: {arousal}");
-
+                timer += Time.deltaTime;
+                if (timer >= logInterval)
+                {
+                    timer = 0f;
+                    if (valence > 0f && arousal > 0f)
+                    {
+                        string line = $"Valence: {valence} | Arousal: {arousal}\n";
+                        File.AppendAllText(logPath, line);
+                    }
+                }
+                
                 // Normalize valence to 0–1 (DEAM range 1–9)
                 valence = Mathf.InverseLerp(1f, 9f, valence);
+                arousal = Mathf.InverseLerp(1f, 9f, arousal);
+                
 
                 Color targetColor = ValenceToGradientColor(valence);
                 currentColor = Color.Lerp(currentColor, targetColor, Time.deltaTime * smoothColorSpeed);
@@ -94,23 +116,25 @@ public class EmotionAudioInput : MonoBehaviour
 
     Color ValenceToGradientColor(float valence)
     {
-        // Detailed 1–9 mapping (valence normalized 0–1)
-        if (valence < 0.025f)
-            return Color.Lerp(new Color(0f, 0f, 0.8f), new Color(0f, 0.8f, 1f), valence / 0.125f);
+        Color result;
+
+        if (valence < 0.01f)
+            result = new Color(0f, 0f, 0.8f); // Deep Blue
+        else if (valence < 0.015f)
+            result = new Color(0f, 0.8f, 1f); // Cyan
+        else if (valence < 0.02f)
+            result = new Color(0.3f, 1f, 0.5f); // Aqua-Green
+        else if (valence < 0.025f)
+            result = new Color(0.7f, 1f, 0.3f); // Lime
+        else if (valence < 0.03f)
+            result = new Color(1f, 1f, 0.2f); // Yellow
         else if (valence < 0.05f)
-            return Color.Lerp(new Color(0f, 0.8f, 1f), new Color(0.3f, 1f, 0.5f), (valence - 0.125f) / 0.125f);
-        else if (valence < 0.075f)
-            return Color.Lerp(new Color(0.3f, 1f, 0.5f), new Color(0.7f, 1f, 0.3f), (valence - 0.25f) / 0.125f);
-        else if (valence < 0.10f)
-            return Color.Lerp(new Color(0.7f, 1f, 0.3f), new Color(1f, 1f, 0.2f), (valence - 0.375f) / 0.125f);
-        else if (valence < 0.15f)
-            return Color.Lerp(new Color(1f, 1f, 0.2f), new Color(1f, 0.6f, 0f), (valence - 0.5f) / 0.125f);
-        else if (valence < 0.20f)
-            return Color.Lerp(new Color(1f, 0.6f, 0f), new Color(1f, 0.3f, 0.1f), (valence - 0.625f) / 0.125f);
-        else if (valence < 0.25f)
-            return Color.Lerp(new Color(1f, 0.3f, 0.1f), new Color(1f, 0f, 0f), (valence - 0.75f) / 0.125f);
+            result = new Color(1f, 0.6f, 0f); // Orange
+        else if (valence < 0.08f)
+            result = new Color(1f, 0.3f, 0.1f); // Red-Orange
         else
-            return Color.Lerp(new Color(1f, 0f, 0f), new Color(1f, 0.4f, 0.6f), (valence - 0.875f) / 0.125f);
+            result = new Color(1f, 0f, 0f); // Red
+        return result;
     }
 
     Gradient MakeNeutralGradient()
