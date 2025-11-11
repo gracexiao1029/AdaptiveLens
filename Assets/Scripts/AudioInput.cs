@@ -29,7 +29,6 @@ public class AudioInput : MonoBehaviour
         passthrough.colorMapEditorBrightness = 0.0f;
         passthrough.colorMapEditorContrast = 0.0f;
         passthrough.colorMapEditorPosterize = 0f;
-
     }
 
     void Update()
@@ -41,26 +40,24 @@ public class AudioInput : MonoBehaviour
         if (freq <= 0 || float.IsNaN(freq))
         {
             passthrough.colorMapEditorGradient = MakeNeutralGradient();
+            passthrough.colorMapEditorBrightness = 0f;
             return;
         }
 
-        float hue;
-        float octaveSmooth;
-        float semitone;
-        GetHueOctaveSemitone(freq, out hue, out octaveSmooth, out semitone);
+        // Get color and octave info
+        Color targetColor;
+        float octave;
+        GetNoteColorAndOctave(freq, out targetColor, out octave);
 
-        // Lightness: blend octave + pitch position (higher notes are brighter)
-        float pitchPos = semitone / 12f; // 0¨C1 across the octave
-        float l = Mathf.Lerp(0.35f, 0.8f, Mathf.InverseLerp(2f, 6f, octaveSmooth));
-        l += (pitchPos - 0.5f) * 0.15f; // brighten high notes like So/La/Ti a bit
-        l = Mathf.Clamp01(l);
-
-        // Convert HSL ¡ú RGB
-        Color targetColor = ColorFromHSL(hue, 0.9f, l);
+        // Smoothly change color
         currentColor = Color.Lerp(currentColor, targetColor, Time.deltaTime * smoothColorSpeed);
 
+        // Brightness based on octave (octave 4 = 0 brightness)
+        float brightness = Mathf.Lerp(-0.2f, 0.2f, Mathf.InverseLerp(2f, 6f, octave));
+
+        // Apply to passthrough
         passthrough.colorMapEditorGradient = MakeTintedGradient(currentColor);
-        passthrough.colorMapEditorBrightness = 0f;
+        passthrough.colorMapEditorBrightness = brightness;
         passthrough.colorMapEditorContrast = 0f;
         passthrough.colorMapEditorPosterize = 0f;
         passthrough.textureOpacity = 1.0f;
@@ -84,47 +81,39 @@ public class AudioInput : MonoBehaviour
         return maxN * (sampleRate / 2f) / sampleSize;
     }
 
-    // Map frequency to hue, octave, and semitone
-    void GetHueOctaveSemitone(float freq, out float hue, out float octave, out float semitone)
+    // Get both color (A¨CG) and octave number
+    void GetNoteColorAndOctave(float freq, out Color color, out float octave)
     {
-        hue = 0f;
-        octave = 4f;
-        semitone = 0f;
-        if (freq <= 0) return;
+        // Compute MIDI note number (A4 = 440 Hz)
+        float noteNumber = 12f * Mathf.Log(freq / 440f, 2f) + 69f;
+        int roundedNote = Mathf.RoundToInt(noteNumber) % 12;
+        octave = Mathf.Floor(noteNumber / 12f) - 1f; // e.g. A4 ¡ú 4
 
-        float log_val = Mathf.Log(freq / 16.35f, 2f); // C0 = 16.35 Hz
-        octave = Mathf.Clamp(log_val, 2f, 6f);
-        semitone = (log_val - Mathf.Floor(log_val)) * 12f;
-
-        // Remap hue pattern (C=Green, D=Blue, E=Indigo, F=Violet, G=Red, A=Orange, B=Yellow)
-        float baseHue = semitone * (360f / 12f);
-        hue = Mathf.Repeat(120f + baseHue, 360f); // shift starting point to green (120¡ã)
-    }
-
-    // HSL to RGB
-    Color ColorFromHSL(float h, float s, float l)
-    {
-        h /= 360f;
-        float r = l, g = l, b = l;
-        if (s != 0)
+        string noteName;
+        switch (roundedNote)
         {
-            float temp2 = (l < 0.5f) ? l * (1f + s) : l + s - l * s;
-            float temp1 = 2f * l - temp2;
-            r = GetColorComponent(temp1, temp2, h + 1f / 3f);
-            g = GetColorComponent(temp1, temp2, h);
-            b = GetColorComponent(temp1, temp2, h - 1f / 3f);
+            case 9: noteName = "A"; break;
+            case 11: noteName = "B"; break;
+            case 0: noteName = "C"; break;
+            case 2: noteName = "D"; break;
+            case 4: noteName = "E"; break;
+            case 5: noteName = "F"; break;
+            case 7: noteName = "G"; break;
+            default: noteName = "A"; break;
         }
-        return new Color(r, g, b);
-    }
 
-    float GetColorComponent(float t1, float t2, float t3)
-    {
-        if (t3 < 0) t3 += 1;
-        if (t3 > 1) t3 -= 1;
-        if (6 * t3 < 1) return t1 + (t2 - t1) * 6 * t3;
-        if (2 * t3 < 1) return t2;
-        if (3 * t3 < 2) return t1 + (t2 - t1) * ((2f / 3f) - t3) * 6f;
-        return t1;
+        // Map note name ¡ú color
+        switch (noteName)
+        {
+            case "A": color = new Color(0.59f, 0.29f, 0.0f); break;   // Brown
+            case "B": color = Color.red; break;                       // Red
+            case "C": color = new Color(1.0f, 0.55f, 0.0f); break;    // Orange
+            case "D": color = Color.yellow; break;                    // Yellow
+            case "E": color = Color.green; break;                     // Green
+            case "F": color = Color.blue; break;                      // Blue
+            case "G": color = new Color(0.56f, 0.0f, 1.0f); break;    // Violet
+            default: color = Color.white; break;
+        }
     }
 
     Gradient MakeNeutralGradient()
