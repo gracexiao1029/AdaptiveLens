@@ -1,6 +1,6 @@
-# AdaptiveLens - Audio-Reactive VR Passthrough
+# ColourSenseXR - Audio-Reactive VR Passthrough
 
-AdaptiveLens is a Unity VR project that dynamically modifies Oculus passthrough filters based on real-time audio input using two distinct strategies: pitch-to-color mapping and emotion-based color analysis.
+ColourSenseXR is a Unity VR project that dynamically modifies Oculus passthrough filters based on real-time audio input using two distinct strategies: pitch-to-color mapping and emotion-based color analysis.
 
 ## Overview
 
